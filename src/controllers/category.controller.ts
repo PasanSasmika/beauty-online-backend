@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
-import pool from '../config/db.js';
-import { ResultSetHeader } from 'mysql2';
+import Category from '../models/Category.js';
 
 export const getAllCategories = async (req: Request, res: Response): Promise<void> => {
   try {
-    const [rows] = await pool.query('SELECT * FROM categories ORDER BY name ASC');
-    res.json(rows);
+    const categories = await Category.find().sort({ name: 1 }); // Sort by name ascending
+    res.json(categories);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch categories' });
@@ -20,13 +19,17 @@ export const addCategory = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
-    await pool.query('INSERT INTO categories (name) VALUES (?)', [name]);
-    res.status(201).json({ message: 'Category added' });
-  } catch (error: any) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    // Check duplicate
+    const exists = await Category.findOne({ name });
+    if (exists) {
       res.status(400).json({ error: 'Category already exists' });
       return;
     }
+
+    await Category.create({ name });
+    res.status(201).json({ message: 'Category added' });
+
+  } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to add category' });
   }
@@ -35,7 +38,7 @@ export const addCategory = async (req: Request, res: Response): Promise<void> =>
 export const deleteCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+    await Category.findByIdAndDelete(id);
     res.json({ message: 'Category deleted' });
   } catch (error) {
     console.error(error);

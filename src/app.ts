@@ -5,6 +5,7 @@ import Authrouter from './routes/auth.routes.js';
 import path from 'path';
 import Productrouter from './routes/product.routes.js';
 import Categoryrouter from './routes/category.routes.js';
+import Orderrouter from './routes/order.routes.js';
 
 const app = express();
 
@@ -17,6 +18,6 @@ app.use('/api', Baserouter);
 app.use('/api/auth', Authrouter); 
 app.use('/api/products', Productrouter)
 app.use('/api/categories', Categoryrouter);
-
+app.use('/api/orders', Orderrouter);
 
 export default app;

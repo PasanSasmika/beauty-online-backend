@@ -7,6 +7,7 @@ import Productrouter from './routes/product.routes.js';
 import Categoryrouter from './routes/category.routes.js';
 import Orderrouter from './routes/order.routes.js';
 import Dashboardrouter from './routes/dashboard.routes.js';
+import Emailrouter from './routes/message.routes.js';
 
 const app = express();
 
@@ -21,6 +22,6 @@ app.use('/api/products', Productrouter)
 app.use('/api/categories', Categoryrouter);
 app.use('/api/orders', Orderrouter);
 app.use('/api/dashboard', Dashboardrouter);
-
+app.use('/api/messages', Emailrouter);
 
 export default app;

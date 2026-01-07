@@ -11,7 +11,6 @@ const PORT = process.env.PORT || 5000;
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
-  console.log('📂 Created "uploads" folder');
 }
 
 const startServer = async () => {
@@ -19,7 +18,6 @@ const startServer = async () => {
     await connectDB();
     
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error('❌ Failed to connect to database. Server not started.', error);

@@ -21,6 +21,7 @@ variantSchema.set('toJSON', {
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
+  howToUse: { type: String },
   category: { type: String, required: true },
   brand: { type: String, required: true },
   country: { type: String },

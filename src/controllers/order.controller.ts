@@ -91,3 +91,31 @@ export const deleteOrder = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: 'Failed to delete order' });
   }
 };
+
+export const trackOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orderId } = req.query as { orderId: string };
+ 
+    if (!orderId || orderId.trim().length < 4) {
+      res.status(400).json({ error: 'Please provide a valid Order ID' });
+      return;
+    }
+ 
+    // Fetch all orders and find one whose ID ends with the entered short code
+    const all = await Order.find({});
+    const match = all.find(o =>
+      o.id.toUpperCase().endsWith(orderId.trim().toUpperCase())
+    );
+ 
+    if (!match) {
+      res.status(404).json({ error: 'No order found with that ID' });
+      return;
+    }
+ 
+    res.json(match);
+  } catch (error) {
+    console.error('Track order error:', error);
+    res.status(500).json({ error: 'Failed to track order' });
+  }
+};
+ 

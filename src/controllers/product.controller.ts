@@ -3,7 +3,7 @@ import Product from '../models/Product.js';
 
 export const addProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, description, category, brand, country, is_koko_enabled, variants } = req.body;
+    const { name, description, howToUse, category, brand, country, is_koko_enabled, variants } = req.body;
     
     // Parse variants if they come as a JSON string (Multipart form data behavior)
     let parsedVariants = [];
@@ -19,6 +19,7 @@ export const addProduct = async (req: Request, res: Response): Promise<void> => 
     const newProduct = await Product.create({
       name,
       description,
+     howToUse: howToUse || "",
       category,
       brand,
       country: country || null,
@@ -97,14 +98,14 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
   try {
     const { id } = req.params;
     const { 
-      name, description, category, brand, country, is_koko_enabled, variants 
+      name, description, howToUse, category, brand, country, is_koko_enabled, variants 
     } = req.body;
 
     const files = req.files as Express.Multer.File[];
 
     // Prepare Update Object
     const updateData: any = {
-      name, description, category, brand, country: country || null,
+      name, description, howToUse: howToUse || "", category, brand, country: country || null,
       is_koko_enabled: is_koko_enabled === 'true' || is_koko_enabled === true
     };
 

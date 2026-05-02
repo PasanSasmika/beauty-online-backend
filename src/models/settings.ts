@@ -1,17 +1,20 @@
 import mongoose from 'mongoose';
 
-const settingSchema = new mongoose.Schema({
-  shipping_cost: { 
-    type: Number, 
-    required: true, 
-    default: 500 
-  }
-  // You can easily add more settings here in the future
-  // store_name: { type: String },
-  // tax_rate: { type: Number },
+const bannerSchema = new mongoose.Schema({
+  image: { type: String, required: true },       // stored filename/path
+  description: { type: String, default: '' },
+  isVisible: { type: Boolean, default: true },
 }, { timestamps: true });
 
-// Ensure we remove _id when returning JSON
+const settingSchema = new mongoose.Schema({
+  shipping_cost: {
+    type: Number,
+    required: true,
+    default: 500
+  },
+  banners: { type: [bannerSchema], default: [] },
+}, { timestamps: true });
+
 settingSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,

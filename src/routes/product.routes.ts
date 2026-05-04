@@ -7,7 +7,7 @@ const Productrouter = Router();
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); 
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -15,12 +15,26 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.fieldname === 'document' && file.mimetype !== 'application/pdf') {
+      return cb(new Error('Only PDF files are allowed for documents'));
+    }
+    cb(null, true);
+  }
+});
 
-Productrouter.post('/', upload.array('images', 5), addProduct);
+// ← Switch from upload.array to upload.fields
+const uploadFields = upload.fields([
+  { name: 'images', maxCount: 5 },
+  { name: 'document', maxCount: 1 },
+]);
+
+Productrouter.post('/', uploadFields, addProduct);
 Productrouter.get('/', getAllProducts);
-Productrouter.get('/:id', getProductById);        
-Productrouter.put('/:id', upload.array('images', 5), updateProduct);
+Productrouter.get('/:id', getProductById);
+Productrouter.put('/:id', uploadFields, updateProduct);
 Productrouter.delete('/:id', deleteProduct);
 
 export default Productrouter;

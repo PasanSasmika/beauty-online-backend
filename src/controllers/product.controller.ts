@@ -1,30 +1,36 @@
 import { Request, Response } from 'express';
 import Product from '../models/Product.js';
 
+
+const extractFiles = (req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const images = files?.['images'] ? files['images'].map(f => `/uploads/${f.filename}`) : [];
+  const document = files?.['document']?.[0] ? `/uploads/${files['document'][0].filename}` : null;
+  return { images, document };
+};
+
+
 export const addProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, description, howToUse, category, brand, country, is_koko_enabled, variants } = req.body;
-    
-    // Parse variants if they come as a JSON string (Multipart form data behavior)
+
     let parsedVariants = [];
     if (variants) {
       parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
     }
 
-    // Handle Images
-    const files = req.files as Express.Multer.File[];
-    const imagePaths = files ? files.map(file => `/uploads/${file.filename}`) : [];
+    const { images, document } = extractFiles(req); // ← NEW
 
-    // Create Product with Embedded Variants
     const newProduct = await Product.create({
       name,
       description,
-     howToUse: howToUse || "",
+      howToUse: howToUse || "",
       category,
       brand,
       country: country || null,
       is_koko_enabled: is_koko_enabled === 'true' || is_koko_enabled === true,
-      images: imagePaths,
+      images,
+      document, // ← NEW
       variants: parsedVariants
     });
 
@@ -36,15 +42,13 @@ export const addProduct = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
+
 export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
   try {
     const { search, category } = req.query;
-
-    // Build Query Filter
     const filter: any = {};
 
     if (search) {
-      // Regex for case-insensitive LIKE query
       const regex = new RegExp(search as string, 'i');
       filter.$or = [{ name: regex }, { brand: regex }];
     }
@@ -97,36 +101,27 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
 export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { 
-      name, description, howToUse, category, brand, country, is_koko_enabled, variants 
-    } = req.body;
+    const { name, description, howToUse, category, brand, country, is_koko_enabled, variants } = req.body;
 
-    const files = req.files as Express.Multer.File[];
+    const { images, document } = extractFiles(req); // ← NEW
 
-    // Prepare Update Object
     const updateData: any = {
-      name, description, howToUse: howToUse || "", category, brand, country: country || null,
+      name, description, howToUse: howToUse || "", category, brand,
+      country: country || null,
       is_koko_enabled: is_koko_enabled === 'true' || is_koko_enabled === true
     };
 
-    // Only update images if new files exist
-    if (files && files.length > 0) {
-        const imagePaths = files.map(file => `/uploads/${file.filename}`);
-        updateData.images = imagePaths;
-    }
+    if (images.length > 0) updateData.images = images;
 
-    // Update Variants if provided
+    // Only overwrite document if a new one was uploaded
+    if (document) updateData.document = document; // ← NEW
+
     if (variants) {
-       const parsedVariants = typeof variants === 'string' ? JSON.parse(variants) : variants;
-       updateData.variants = parsedVariants;
+      updateData.variants = typeof variants === 'string' ? JSON.parse(variants) : variants;
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updateData, { new: true });
-
-    if (!updatedProduct) {
-      res.status(404).json({ error: 'Product not found' });
-      return;
-    }
+    if (!updatedProduct) { res.status(404).json({ error: 'Product not found' }); return; }
 
     res.json({ message: 'Product updated successfully' });
 

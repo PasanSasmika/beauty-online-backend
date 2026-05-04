@@ -27,6 +27,7 @@ const productSchema = new mongoose.Schema({
   country: { type: String },
   is_koko_enabled: { type: Boolean, default: false },
   images: [{ type: String }],
+  document: { type: String, default: null }, 
   variants: [variantSchema], 
 }, { timestamps: true });
 

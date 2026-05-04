@@ -4,7 +4,13 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import { AuthRequest } from '../middleware/auth.middleware.js';
 import User from '../models/User.js';
-import { sendEmail } from '../utils/email.js'; // ← adjust path if different
+import { sendEmail } from '../utils/email.js';
+
+// Statuses where stock has already been deducted
+const DEDUCTED_STATUSES = ['processing', 'shipped', 'delivered'];
+
+// Statuses that restore stock (only if previously deducted)
+const RESTORE_STATUSES   = ['cancelled', 'returned'];
 
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -21,10 +27,9 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       order_status: 'pending'
     });
 
-    // ── Send product documents via email ─────────────────────────────
+    // ── Send product documents via email ──────────────────────────────
     if (customer?.email && items?.length > 0) {
       try {
-        // Get unique product IDs (1 doc per unique product, regardless of qty)
         const uniqueProductIds: string[] = [
           ...new Set(
             (items as any[])
@@ -33,12 +38,10 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
           )
         ];
 
-        // Fetch all products in parallel
         const products = await Promise.all(
           uniqueProductIds.map((pid: string) => Product.findById(pid))
         );
 
-        // Collect valid document attachments
         const attachments = products
           .filter((p) => p && p.document)
           .map((p) => ({
@@ -68,6 +71,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     res.status(500).json({ error: 'Failed to place order' });
   }
 };
+
 export const getUserOrders = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user.id;
@@ -105,14 +109,48 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status: newStatus } = req.body;
 
-    const order = await Order.findByIdAndUpdate(id, { order_status: status }, { new: true });
+    // Fetch full order so we have previous status + items
+    const order = await Order.findById(id);
 
     if (!order) {
       res.status(404).json({ error: 'Order not found' });
       return;
     }
+
+    const prevStatus = order.order_status;
+
+    // ── Stock adjustment logic ────────────────────────────────────────
+    const wasDeducted = DEDUCTED_STATUSES.includes(prevStatus);
+    const willDeduct  = DEDUCTED_STATUSES.includes(newStatus);
+    const willRestore = RESTORE_STATUSES.includes(newStatus);
+
+    if (!wasDeducted && willDeduct) {
+      // pending → processing: DECREASE stock for each ordered item
+      console.log(`📦 Deducting stock for order ${id}`);
+      for (const item of order.items as any[]) {
+        await Product.updateOne(
+          { _id: item.product_id, 'variants.size': item.size },
+          { $inc: { 'variants.$.quantity': -item.quantity } }
+        );
+      }
+    } else if (wasDeducted && willRestore) {
+      // processing/shipped → cancelled/returned: RESTORE stock
+      console.log(`🔄 Restoring stock for order ${id}`);
+      for (const item of order.items as any[]) {
+        await Product.updateOne(
+          { _id: item.product_id, 'variants.size': item.size },
+          { $inc: { 'variants.$.quantity': item.quantity } }
+        );
+      }
+    }
+    // All other transitions (e.g. processing→shipped, pending→cancelled)
+    // don't touch stock at all
+    // ─────────────────────────────────────────────────────────────────
+
+    order.order_status = newStatus;
+    await order.save();
 
     res.json({ message: 'Order status updated', order });
   } catch (error) {

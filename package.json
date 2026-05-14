@@ -4,9 +4,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "node api.js && tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node api.js && node dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +22,7 @@
     "mongoose": "^9.1.2",
     "multer": "^2.0.2",
     "mysql2": "^3.16.0",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.12"
   },
   "devDependencies": {

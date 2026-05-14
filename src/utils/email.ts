@@ -26,7 +26,8 @@ export const sendEmail = async (
   to: string,
   subject: string,
   text: string,
-  attachments?: { filename: string; path: string }[]
+  attachments?: { filename: string; path: string }[],
+  html?: string   // ← add optional html param
 ) => {
   try {
     const info = await transporter.sendMail({
@@ -34,6 +35,7 @@ export const sendEmail = async (
       to,
       subject,
       text,
+      html: html || undefined,   // ← pass it through
       attachments: attachments || []
     });
     console.log("✅ Email sent: %s", info.messageId);
